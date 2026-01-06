@@ -37,6 +37,19 @@ def start(opts):
   image_path = f'{run_dir}/{opts.IMAGE_FILE_NAME}'
   kernel_path = f'{run_dir}/{opts.KERNEL_FILE_NAME}'
 
+  # Set flags to enable/disable graphics support
+  if opts.enable_graphics:
+    graphics_flags = f"""\
+      -device virtio-gpu \
+      -device virtio-tablet-pci \
+      -device virtio-keyboard-pci
+      """
+  else:
+    graphics_flags = f"""\
+      -nographic \
+      -no-reboot
+      """
+
   # Start emulator
   log.info("Starting the emulator ...")
   run(f"""
@@ -51,7 +64,7 @@ def start(opts):
     -device virtio-blk,drive=hd0,bootindex=0 \
     -netdev user,id=mynet,hostfwd=tcp::2222-:22 \
     -device virtio-net-pci,netdev=mynet \
-    -nographic -no-reboot
+    {graphics_flags}
     """,
     get_output=False,
     stderr=None if opts.verbose else subprocess.DEVNULL
@@ -64,5 +77,6 @@ def start_parser(parsers, parent_parser, get_usage, env):
   parser = parsers.add_parser("start", description=description, parents=[parent_parser], usage=get_usage('start'))
   parser.add_argument('-p', dest='port', type=int, help=f"port number (default: {env.PORT})", default=env.PORT)
   parser.add_argument('--image', dest='image_path', type=str, help=f"image file (default: {env.IMAGE_FILE_NAME})", default=env.IMAGE_FILE_NAME)
+  parser.add_argument('-g', '--graphics', dest='enable_graphics', action='store_true', help="enable graphics support", default=False)
 
   parser.set_defaults(func=lambda *args: start(*args))
